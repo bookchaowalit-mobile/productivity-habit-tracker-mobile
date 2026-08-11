@@ -4,10 +4,9 @@
 **Repo:** `bookchaowalit-mobile/bookchaowalit-habit-tracker-mobile`  
 **Role:** Mobile release candidate (RC) — portfolio Flutter app, **not** a store-released product yet.
 
-> **Identity note (BD-023):** Older template residue used the name *FitPulse* in
-> generated Flutter files (`fitpulse/`, `fitpulse.iml`). The product name for
-> interview and release gates is **Habit Tracker**. Rename remaining FitPulse
-> identifiers before any store listing.
+> **Identity note (BD-023):** Product identity is **Habit Tracker**. Nested
+> FitPulse template residue (`fitpulse/`, Android `com.bookchaowalit.fitpulse`)
+> was removed/renamed. Package id is `com.bookchaowalit.habittracker`.
 
 ## Purpose
 

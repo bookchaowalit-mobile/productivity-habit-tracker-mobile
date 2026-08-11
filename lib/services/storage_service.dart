@@ -3,12 +3,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/workout.dart';
 
 class StorageService {
-  static const String WORKOUTS_KEY = 'fitpulse_workouts';
-  static const String GOALS_KEY = 'fitpulse_goals';
+  static const String workoutsKey = 'habit_tracker_workouts';
+  static const String goalsKey = 'habit_tracker_goals';
 
   static Future<List<Workout>> getWorkouts() async {
     final prefs = await SharedPreferences.getInstance();
-    final json = prefs.getString(WORKOUTS_KEY);
+    final json = prefs.getString(workoutsKey);
     if (json == null) return [];
     final list = jsonDecode(json) as List;
     return list.map((w) => Workout.fromJson(w as Map<String, dynamic>)).toList();
@@ -16,7 +16,7 @@ class StorageService {
 
   static Future<void> saveWorkouts(List<Workout> workouts) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(WORKOUTS_KEY, jsonEncode(workouts.map((w) => w.toJson()).toList()));
+    await prefs.setString(workoutsKey, jsonEncode(workouts.map((w) => w.toJson()).toList()));
   }
 
   static Future<void> addWorkout(Workout workout) async {
@@ -46,8 +46,12 @@ class StorageService {
     while (true) {
       final hasWorkout = workouts.any((w) =>
         w.date.year == checkDate.year && w.date.month == checkDate.month && w.date.day == checkDate.day);
-      if (hasWorkout) { streak++; checkDate = checkDate.subtract(const Duration(days: 1)); }
-      else break;
+      if (hasWorkout) {
+        streak++;
+        checkDate = checkDate.subtract(const Duration(days: 1));
+      } else {
+        break;
+      }
     }
 
     return WeeklyStats(
