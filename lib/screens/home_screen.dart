@@ -90,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
           pinned: true,
           flexibleSpace: FlexibleSpaceBar(
             titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-            title: const Text('FitPulse', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+            title: const Text('Habit Tracker', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
             background: Container(
               decoration: const BoxDecoration(gradient: LinearGradient(
                 begin: Alignment.topCenter, end: Alignment.bottomCenter,
@@ -149,7 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ('Back', Icons.accessibility_new, _muscleColors['Back']!),
       ('Legs', Icons.directions_run, _muscleColors['Legs']!),
       ('Arms', Icons.accessibility, _muscleColors['Arms']!),
-      ('Shoulders', Icons.arm_flex, _muscleColors['Shoulders']!),
+      ('Shoulders', Icons.fitness_center, _muscleColors['Shoulders']!),
       ('Core', Icons.self_improvement, _muscleColors['Core']!),
     ];
     return GridView.count(

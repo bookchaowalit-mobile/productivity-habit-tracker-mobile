@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 
 void main() {
-  runApp(const FitPulseApp());
+  runApp(const HabitTrackerApp());
 }
 
-class FitPulseApp extends StatelessWidget {
-  const FitPulseApp({super.key});
+class HabitTrackerApp extends StatelessWidget {
+  const HabitTrackerApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'FitPulse',
+      title: 'Habit Tracker',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
@@ -27,7 +27,7 @@ class FitPulseApp extends StatelessWidget {
           elevation: 0,
           titleTextStyle: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
         ),
-        cardTheme: const CardTheme(
+        cardTheme: const CardThemeData(
           color: Color(0xFF161B22),
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),

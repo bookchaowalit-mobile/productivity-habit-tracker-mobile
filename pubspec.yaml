@@ -1,5 +1,5 @@
-name: fitpulse
-description: FitPulse - Fitness & Workout Tracker
+name: habit_tracker
+description: Habit Tracker — mobile habit tracking portfolio app
 publish_to: 'none'
 version: 1.0.0+1
 
