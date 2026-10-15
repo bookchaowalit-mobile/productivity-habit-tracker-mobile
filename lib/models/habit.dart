@@ -1,4 +1,17 @@
+import 'package:characters/characters.dart';
+
 class Habit {
+  static const maxNameLength = 80;
+
+  static String? validateName(String? value) {
+    final name = value?.trim() ?? '';
+    if (name.isEmpty) return 'Enter a habit name.';
+    if (name.characters.length > maxNameLength) {
+      return 'Use at most 80 characters.';
+    }
+    return null;
+  }
+
   final String id;
   final String name;
   final Set<int> schedule;
@@ -12,7 +25,7 @@ class Habit {
   })  : name = name.trim(),
         schedule = Set.unmodifiable(schedule),
         completions = Set.unmodifiable(completions) {
-    if (id.isEmpty || this.name.isEmpty || this.name.length > 80) {
+    if (id.isEmpty || validateName(this.name) != null) {
       throw ArgumentError('A habit needs an id and a name of 1–80 characters.');
     }
     if (schedule.isEmpty || schedule.any((day) => day < 1 || day > 7)) {

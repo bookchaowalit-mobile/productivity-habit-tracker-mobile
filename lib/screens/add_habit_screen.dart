@@ -42,13 +42,11 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
               TextFormField(
                 controller: _name,
                 autofocus: true,
-                maxLength: 80,
+                maxLength: Habit.maxNameLength,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(
                     labelText: 'Habit name', hintText: 'Read ten pages'),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'Enter a habit name.'
-                    : null,
+                validator: Habit.validateName,
               ),
               const SizedBox(height: 24),
               const Text('Repeat on'),

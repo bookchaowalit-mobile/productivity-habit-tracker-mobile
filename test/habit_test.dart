@@ -3,6 +3,21 @@ import 'package:habit_tracker/models/habit.dart';
 
 void main() {
   final thursday = DateTime(2026, 10, 15);
+  for (final (label, name) in [
+    ('emoji', List.filled(41, '😀').join()),
+    ('combining marks', List.filled(80, 'e\u0301').join())
+  ]) {
+    test('name limit accepts $label', () {
+      expect(Habit(id: 'read', name: name, schedule: {4}).name, name);
+    });
+  }
+  test('name limit rejects more than 80 visible characters', () {
+    expect(
+        () => Habit(
+            id: 'read', name: List.filled(81, '😀').join(), schedule: {4}),
+        throwsArgumentError);
+  });
+
   test('habit schedule selects weekdays and normalizes the name', () {
     final habit = Habit(id: 'read', name: ' Read ', schedule: {1, 4});
     expect(habit.name, 'Read');

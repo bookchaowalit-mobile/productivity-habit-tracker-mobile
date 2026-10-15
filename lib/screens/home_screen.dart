@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import '../models/habit.dart';
 import '../services/storage_service.dart';
@@ -17,16 +19,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _saving = false;
   String? _loadError;
   int _tab = 0;
+  Timer? _dayTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _scheduleDayRefresh();
     _load();
   }
 
   @override
   void dispose() {
+    _dayTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -34,7 +39,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Recalculate today's schedule after returning across midnight.
-    if (state == AppLifecycleState.resumed && mounted) setState(() {});
+    if (state == AppLifecycleState.resumed && mounted) {
+      _scheduleDayRefresh();
+      setState(() {});
+    }
+  }
+
+  void _scheduleDayRefresh() {
+    _dayTimer?.cancel();
+    final now = clock.now();
+    final midnight = DateTime(now.year, now.month, now.day + 1);
+    _dayTimer = Timer(midnight.difference(now), () {
+      if (!mounted) return;
+      setState(() {});
+      _scheduleDayRefresh();
+    });
   }
 
   Future<void> _load() async {
@@ -82,13 +101,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _toggle(Habit habit, DateTime today) async {
+  Future<void> _toggle(String id) async {
     if (_saving || _loading || _loadError != null) return;
+    final today = clock.now();
+    _scheduleDayRefresh();
+    // A queued tap can come from yesterday's widget before the refresh frame.
+    if (!_habits.any((habit) => habit.id == id && habit.isScheduledOn(today))) {
+      setState(() {});
+      return;
+    }
     setState(() => _saving = true);
     try {
       await _save(_habits
-          .map((entry) =>
-              entry.id == habit.id ? habit.toggleCompletion(today) : entry)
+          .map(
+              (entry) => entry.id == id ? entry.toggleCompletion(today) : entry)
           .toList());
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -97,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final today = DateTime.now();
+    final today = clock.now();
     final scheduled =
         _habits.where((habit) => habit.isScheduledOn(today)).toList();
     final completed =
@@ -136,9 +162,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   subtitle: Text(
                                       '${habit.currentStreak(today)} day streak'),
                                   value: habit.isCompletedOn(today),
-                                  onChanged: _saving
-                                      ? null
-                                      : (_) => _toggle(habit, today),
+                                  onChanged:
+                                      _saving ? null : (_) => _toggle(habit.id),
                                 ))),
                           ],
                         ),

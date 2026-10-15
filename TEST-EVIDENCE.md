@@ -10,7 +10,7 @@ CI now pins the same SDK as Goal Tracker; no remote workflow was triggered.
 | `flutter pub get` | Passed with committed lockfile |
 | `dart format --output=none --set-exit-if-changed lib test` | Passed |
 | `flutter analyze --no-pub` | Passed, no issues found |
-| `flutter test --no-pub` | Passed, 15 tests |
+| `flutter test --no-pub` | Passed, 23 tests |
 | `rg -n 'workout\|Workout\|ExerciseSet\|muscleGroup' lib` | No matches |
 | `flutter build apk --debug --no-pub` | Blocked: Android SDK is not installed |
 
@@ -42,3 +42,18 @@ regression test reproduced the preferences cache retaining a rejected write;
 reloading after rejection fixed it. A mutation check also confirmed that
 omitting the completion update fails the check-off test. All production code
 was restored before final verification.
+
+## Review regressions
+
+The review found two defects: an old checkbox callback could save yesterday's
+completion after midnight, and UTF-16 name length disagreed with the form's
+visible-character limit. Both were reproduced before fixing them. The suite
+now has 23 tests, including deterministic foreground-midnight refresh, an old
+callback using the current action date, an old callback declining an
+unscheduled new day, and emoji/combining-character form and model cases.
+
+The foreground refresh uses a cancellable local-midnight timer. Date reads
+use the `clock` boundary so tests advance their clock and Flutter's virtual
+time without sleeping. The action also resolves the current date directly,
+covering taps that arrive before the timer's refresh frame. The form and
+model share a grapheme-based validator with the same 80-character limit.
