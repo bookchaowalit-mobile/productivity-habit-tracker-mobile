@@ -1,7 +1,7 @@
 # Habit Tracker Mobile (Book)
 
-**Package / app identity:** Habit Tracker (Flutter)  
-**Repo:** `bookchaowalit-mobile/bookchaowalit-habit-tracker-mobile`  
+**Package / app identity:** Habit Tracker (Flutter)
+**Repo:** `bookchaowalit-mobile/productivity-habit-tracker-mobile`
 **Role:** Mobile release candidate (RC) — portfolio Flutter app, **not** a store-released product yet.
 
 > **Identity note (BD-023):** Product identity is **Habit Tracker**. Nested
@@ -10,12 +10,23 @@
 
 ## Purpose
 
-Track daily habits offline-first on mobile. Intended as a Flutter portfolio
-showcase with real local state — not a fitness SaaS.
+Create habits with a name and selected weekdays, check them off on Today,
+and see saved schedules and streaks. All data stays in local app preferences;
+there are no accounts or backend services.
+
+A streak counts consecutive scheduled days, skipping rest days. An unfinished
+habit today keeps the previous streak until that scheduled day has passed.
+Checking off a habit again reverses that day's completion. The All habits tab
+shows schedules and total check-offs; Stats shows current streaks.
+
+Habit data uses the new `habit_tracker_habits` preferences key. Data from the
+previous fitness sample is left untouched under its old key and is not
+reinterpreted as habits. Unreadable habit data blocks writes and displays a
+retry action; a failed save keeps the previously displayed state.
 
 ## Stack
 
-- Flutter (see `pubspec.yaml` / `pubspec.lock`)
+- Flutter 3.44.9 / Dart 3.12.2 (same pin as Goal Tracker)
 - Tests under `test/`
 - CI: `.github/workflows/build.yml` (fail-closed analyze/test for RC)
 
@@ -23,6 +34,7 @@ showcase with real local state — not a fitness SaaS.
 
 ```bash
 flutter pub get
+dart format --output=none --set-exit-if-changed lib test
 flutter analyze
 flutter test
 flutter run
@@ -43,3 +55,10 @@ flutter run
 - goal-tracker-mobile
 - invoice-generator-mobile
 - portfolio-mobile
+
+## Local verification
+
+See [TEST-EVIDENCE.md](TEST-EVIDENCE.md) for the current commands, source
+identity and platform limitations. Unit and widget tests cover habit creation,
+weekday schedules, check-off/restart persistence, streak calculations and
+unreadable data. Android APK and device verification are separate gates.

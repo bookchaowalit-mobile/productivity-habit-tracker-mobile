@@ -25,12 +25,14 @@ class HabitTrackerApp extends StatelessWidget {
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF0D1117),
           elevation: 0,
-          titleTextStyle: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+          titleTextStyle: TextStyle(
+              color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
         ),
         cardTheme: const CardThemeData(
           color: Color(0xFF161B22),
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(16))),
         ),
       ),
       home: const HomeScreen(),

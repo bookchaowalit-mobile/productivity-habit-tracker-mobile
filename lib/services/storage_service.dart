@@ -1,65 +1,39 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/workout.dart';
+import '../models/habit.dart';
 
 class StorageService {
-  static const String workoutsKey = 'habit_tracker_workouts';
-  static const String goalsKey = 'habit_tracker_goals';
+  static const habitsKey = 'habit_tracker_habits';
 
-  static Future<List<Workout>> getWorkouts() async {
+  static Future<List<Habit>> getHabits() async {
     final prefs = await SharedPreferences.getInstance();
-    final json = prefs.getString(workoutsKey);
-    if (json == null) return [];
-    final list = jsonDecode(json) as List;
-    return list.map((w) => Workout.fromJson(w as Map<String, dynamic>)).toList();
-  }
-
-  static Future<void> saveWorkouts(List<Workout> workouts) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(workoutsKey, jsonEncode(workouts.map((w) => w.toJson()).toList()));
-  }
-
-  static Future<void> addWorkout(Workout workout) async {
-    final workouts = await getWorkouts();
-    workouts.insert(0, workout);
-    await saveWorkouts(workouts);
-  }
-
-  static Future<void> deleteWorkout(String id) async {
-    final workouts = await getWorkouts();
-    workouts.removeWhere((w) => w.id == id);
-    await saveWorkouts(workouts);
-  }
-
-  static WeeklyStats computeStats(List<Workout> workouts) {
-    final now = DateTime.now();
-    final weekAgo = now.subtract(const Duration(days: 7));
-    final thisWeek = workouts.where((w) => w.date.isAfter(weekAgo)).toList();
-
-    final muscleGroups = <String, int>{};
-    for (final w in workouts) {
-      muscleGroups[w.muscleGroup] = (muscleGroups[w.muscleGroup] ?? 0) + 1;
+    final saved = prefs.getString(habitsKey);
+    if (saved == null) return [];
+    try {
+      final entries = jsonDecode(saved) as List;
+      return entries
+          .map((entry) => Habit.fromJson(entry as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      throw const FormatException(
+          'Saved habits could not be read. Your data has not been changed.');
     }
+  }
 
-    int streak = 0;
-    var checkDate = DateTime(now.year, now.month, now.day);
-    while (true) {
-      final hasWorkout = workouts.any((w) =>
-        w.date.year == checkDate.year && w.date.month == checkDate.month && w.date.day == checkDate.day);
-      if (hasWorkout) {
-        streak++;
-        checkDate = checkDate.subtract(const Duration(days: 1));
-      } else {
-        break;
+  static Future<void> saveHabits(List<Habit> habits) async {
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      final saved = await prefs.setString(habitsKey,
+          jsonEncode(habits.map((habit) => habit.toJson()).toList()));
+      if (!saved) throw StateError('Habits could not be saved.');
+    } catch (_) {
+      // The plugin updates its cache before the native write succeeds.
+      try {
+        await prefs.reload();
+      } catch (_) {
+        // Preserve the original write error when disk reads also fail.
       }
+      rethrow;
     }
-
-    return WeeklyStats(
-      workoutsThisWeek: thisWeek.length,
-      totalVolume: thisWeek.fold(0, (sum, w) => sum + w.totalVolume),
-      totalMinutes: thisWeek.fold(0, (sum, w) => sum + (w.durationSeconds ~/ 60)),
-      streak: streak,
-      muscleGroupDistribution: muscleGroups,
-    );
   }
 }

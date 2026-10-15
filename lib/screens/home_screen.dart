@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/workout.dart';
+import '../models/habit.dart';
 import '../services/storage_service.dart';
-import 'add_workout_screen.dart';
+import 'add_habit_screen.dart';
 import 'stats_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -11,205 +11,171 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  List<Workout> _workouts = [];
-  WeeklyStats? _stats;
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  List<Habit> _habits = [];
   bool _loading = true;
-  int _currentTab = 0;
+  bool _saving = false;
+  String? _loadError;
+  int _tab = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    WidgetsBinding.instance.addObserver(this);
+    _load();
   }
 
-  Future<void> _loadData() async {
-    final workouts = await StorageService.getWorkouts();
-    final stats = StorageService.computeStats(workouts);
-    setState(() { _workouts = workouts; _stats = stats; _loading = false; });
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
-  static const _muscleColors = {
-    'Chest': Color(0xFFFF6B6B), 'Back': Color(0xFF4ECDC4), 'Legs': Color(0xFFFFE66D),
-    'Arms': Color(0xFFA8E6CF), 'Shoulders': Color(0xFFFF8B94), 'Core': Color(0xFFB8A9C9),
-    'Full Body': Color(0xFF00D4AA), 'Cardio': Color(0xFFFF9F43),
-  };
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Recalculate today's schedule after returning across midnight.
+    if (state == AppLifecycleState.resumed && mounted) setState(() {});
+  }
+
+  Future<void> _load() async {
+    try {
+      final habits = await StorageService.getHabits();
+      if (!mounted) return;
+      setState(() {
+        _habits = habits;
+        _loadError = null;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loadError =
+            'Saved habits could not be read. Your data has not been changed.';
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _save(List<Habit> next) async {
+    try {
+      await StorageService.saveHabits(next);
+      if (mounted) setState(() => _habits = next);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Habits could not be saved. Please try again.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _add() async {
+    if (_saving || _loading || _loadError != null) return;
+    setState(() => _saving = true);
+    try {
+      final habit = await Navigator.push<Habit>(
+          context, MaterialPageRoute(builder: (_) => const AddHabitScreen()));
+      if (habit != null && mounted) await _save([..._habits, habit]);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _toggle(Habit habit, DateTime today) async {
+    if (_saving || _loading || _loadError != null) return;
+    setState(() => _saving = true);
+    try {
+      await _save(_habits
+          .map((entry) =>
+              entry.id == habit.id ? habit.toggleCompletion(today) : entry)
+          .toList());
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFF00D4AA))));
-
+    final today = DateTime.now();
+    final scheduled =
+        _habits.where((habit) => habit.isScheduledOn(today)).toList();
+    final completed =
+        scheduled.where((habit) => habit.isCompletedOn(today)).length;
     return Scaffold(
-      body: IndexedStack(
-        index: _currentTab,
-        children: [_buildHome(), _buildHistory(), _stats != null ? StatsScreen(stats: _stats!, workouts: _workouts) : const SizedBox()],
-      ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(color: Color(0xFF161B22), border: Border(top: BorderSide(color: Color(0xFF21262D)))),
-        child: SafeArea(
-          child: Row(
-            children: [
-              _navItem(0, Icons.fitness_center, 'Home'),
-              _navItem(1, Icons.history, 'History'),
-              _navItem(2, Icons.bar_chart, 'Stats'),
-            ],
-          ),
-        ),
+      appBar: AppBar(title: Text(['Today', 'All habits', 'Habit stats'][_tab])),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _loadError != null
+              ? Center(
+                  child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Text(_loadError!, textAlign: TextAlign.center),
+                    TextButton(onPressed: _load, child: const Text('Retry')),
+                  ]),
+                ))
+              : _tab == 2
+                  ? StatsScreen(habits: _habits, today: today)
+                  : _tab == 1
+                      ? _allHabits()
+                      : ListView(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                          children: [
+                            Text(
+                                '$completed of ${scheduled.length} completed today'),
+                            const SizedBox(height: 16),
+                            if (scheduled.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.all(24),
+                                child: Text('No habits scheduled today.'),
+                              ),
+                            ...scheduled.map((habit) => Card(
+                                    child: CheckboxListTile(
+                                  title: Text(habit.name),
+                                  subtitle: Text(
+                                      '${habit.currentStreak(today)} day streak'),
+                                  value: habit.isCompletedOn(today),
+                                  onChanged: _saving
+                                      ? null
+                                      : (_) => _toggle(habit, today),
+                                ))),
+                          ],
+                        ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _tab,
+        onDestinationSelected: (index) => setState(() => _tab = index),
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.today), label: 'Today'),
+          NavigationDestination(
+              icon: Icon(Icons.checklist), label: 'All habits'),
+          NavigationDestination(icon: Icon(Icons.bar_chart), label: 'Stats'),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => const AddWorkoutScreen())); _loadData(); },
-        backgroundColor: const Color(0xFF00D4AA),
-        child: const Icon(Icons.add, color: Colors.black),
+        tooltip: 'Add habit',
+        onPressed: _loading || _saving || _loadError != null ? null : _add,
+        child: const Icon(Icons.add),
       ),
     );
   }
 
-  Widget _navItem(int idx, IconData icon, String label) {
-    final active = _currentTab == idx;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _currentTab = idx),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, color: active ? const Color(0xFF00D4AA) : const Color(0xFF484F58), size: 24),
-            const SizedBox(height: 4),
-            Text(label, style: TextStyle(color: active ? const Color(0xFF00D4AA) : const Color(0xFF484F58), fontSize: 12, fontWeight: active ? FontWeight.bold : FontWeight.normal)),
-          ]),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHome() {
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          expandedHeight: 120,
-          floating: false,
-          pinned: true,
-          flexibleSpace: FlexibleSpaceBar(
-            titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-            title: const Text('Habit Tracker', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-            background: Container(
-              decoration: const BoxDecoration(gradient: LinearGradient(
-                begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                colors: [Color(0xFF00D4AA), Color(0xFF0D1117)],
-              )),
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.all(16),
-          sliver: SliverList(delegate: SliverChildListDelegate([
-            if (_stats != null) ...[
-              Row(children: [
-                _statCard('${_stats!.workoutsThisWeek}', 'Workouts', Icons.fitness_center),
-                const SizedBox(width: 12),
-                _statCard('${_stats!.streak}', 'Day Streak', Icons.local_fire_department),
-              ]),
-              const SizedBox(height: 12),
-              Row(children: [
-                _statCard('${_stats!.totalVolume}', 'Volume (kg)', Icons.speed),
-                const SizedBox(width: 12),
-                _statCard('${_stats!.totalMinutes}', 'Minutes', Icons.timer),
-              ]),
-              const SizedBox(height: 24),
-              const Text('Quick Start', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              _quickStartGrid(),
-              const SizedBox(height: 24),
-              const Text('Recent Workouts', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              ...(_workouts.take(5).map((w) => _workoutCard(w))),
-              if (_workouts.isEmpty) const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('No workouts yet.\nTap + to log your first workout!', style: TextStyle(color: Color(0xFF484F58), fontSize: 16), textAlign: TextAlign.center))),
-            ],
-          ])),
-        ),
-      ],
-    );
-  }
-
-  Widget _statCard(String value, String label, IconData icon) {
-    return Expanded(child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF161B22), borderRadius: BorderRadius.circular(16)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, color: const Color(0xFF00D4AA), size: 20),
-        const SizedBox(height: 8),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-        Text(label, style: const TextStyle(color: Color(0xFF484F58), fontSize: 12)),
-      ]),
-    ));
-  }
-
-  Widget _quickStartGrid() {
-    final templates = [
-      ('Chest', Icons.fitness_center, _muscleColors['Chest']!),
-      ('Back', Icons.accessibility_new, _muscleColors['Back']!),
-      ('Legs', Icons.directions_run, _muscleColors['Legs']!),
-      ('Arms', Icons.accessibility, _muscleColors['Arms']!),
-      ('Shoulders', Icons.fitness_center, _muscleColors['Shoulders']!),
-      ('Core', Icons.self_improvement, _muscleColors['Core']!),
-    ];
-    return GridView.count(
-      shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 3, mainAxisSpacing: 12, crossAxisSpacing: 12,
-      childAspectRatio: 1,
-      children: templates.map((t) => GestureDetector(
-        onTap: () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => AddWorkoutScreen(presetGroup: t.$1))); _loadData(); },
-        child: Container(
-          decoration: BoxDecoration(color: const Color(0xFF161B22), borderRadius: BorderRadius.circular(16), border: Border.all(color: t.$3.withValues(alpha: 0.3))),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(t.$2, color: t.$3, size: 32),
-            const SizedBox(height: 8),
-            Text(t.$1, style: const TextStyle(color: Colors.white, fontSize: 14)),
-          ]),
-        ),
-      )).toList(),
-    );
-  }
-
-  Widget _workoutCard(Workout w) {
-    final color = _muscleColors[w.muscleGroup] ?? const Color(0xFF00D4AA);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF161B22), borderRadius: BorderRadius.circular(16)),
-      child: Row(children: [
-        Container(width: 4, height: 48, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
-        const SizedBox(width: 16),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(w.name, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
-          Text('${w.muscleGroup} • ${w.totalSets} sets • ${w.durationSeconds ~/ 60} min', style: const TextStyle(color: Color(0xFF484F58), fontSize: 13)),
-        ])),
-        Text(_formatDate(w.date), style: const TextStyle(color: Color(0xFF484F58), fontSize: 12)),
-      ]),
-    );
-  }
-
-  Widget _buildHistory() {
-    return CustomScrollView(
-      slivers: [
-        const SliverAppBar(title: Text('History'), pinned: true, backgroundColor: Color(0xFF0D1117)),
-        SliverPadding(
-          padding: const EdgeInsets.all(16),
-          sliver: SliverList(delegate: SliverChildListDelegate([
-            if (_workouts.isEmpty)
-              const Center(child: Padding(padding: EdgeInsets.all(60), child: Text('No workout history', style: TextStyle(color: Color(0xFF484F58)))))
-            else
-              ...(_workouts.map((w) => _workoutCard(w))),
-          ])),
-        ),
-      ],
-    );
-  }
-
-  String _formatDate(DateTime d) {
-    final now = DateTime.now();
-    if (d.year == now.year && d.month == now.month && d.day == now.day) return 'Today';
-    if (d.year == now.year && d.month == now.month && d.day == now.day - 1) return 'Yesterday';
-    return '${d.day}/${d.month}';
-  }
+  Widget _allHabits() => ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+        children: [
+          if (_habits.isEmpty)
+            const Padding(
+                padding: EdgeInsets.all(24),
+                child: Text('Add your first habit with +.')),
+          ..._habits.map((habit) => Card(
+                  child: ListTile(
+                title: Text(habit.name),
+                subtitle: Text([
+                  for (var day = 1; day <= 7; day++)
+                    if (habit.schedule.contains(day)) weekdayLabels[day - 1],
+                ].join(', ')),
+                trailing: Text('${habit.completions.length} check-offs'),
+              ))),
+        ],
+      );
 }
