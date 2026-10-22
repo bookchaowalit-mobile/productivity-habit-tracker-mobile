@@ -28,7 +28,9 @@ retry action; a failed save keeps the previously displayed state.
 
 - Flutter 3.44.9 / Dart 3.12.2 (same pin as Goal Tracker)
 - Tests under `test/`
-- CI: `.github/workflows/build.yml` (fail-closed analyze/test for RC)
+- CI: `.github/workflows/ci.yml` (format/analyze/test, shared security scan, release APK artifact on `main`)
+- Crash reporting: Sentry, only when built with `--dart-define=SENTRY_DSN=...`
+- Product truth: [PRODUCT.md](PRODUCT.md)
 
 ## Run
 
