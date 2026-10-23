@@ -3,7 +3,7 @@ title: "SPEC-001 — Shared CI, Sentry crash reports and a CI release APK"
 status: implemented
 tags: [spec, sdd, tdd, ci, sentry, security, mobile]
 created: 2026-10-22
-updated: 2026-10-22
+updated: 2026-10-23
 description: "Move CI to the shared security scan, report crashes to Sentry without personal data, and keep a labelled release-mode APK from every main build."
 ---
 
@@ -47,7 +47,7 @@ Actions are pinned to commit SHAs.
 | AC-02 | Given a DSN, options are errors only: `sendDefaultPii` false, no tracing, no sessions, no breadcrumbs, no screenshots or view hierarchy | `test/sentry_setup_test.dart` (options) |
 | AC-03 | Before sending, request, user, breadcrumbs and extra are removed; the message and exception stay | `test/sentry_setup_test.dart` (`scrubEvent`) |
 | AC-04 | Existing habit behaviour is unchanged | 23 existing tests in `habit_test.dart`, `storage_service_test.dart`, `widget_test.dart` |
-| AC-05 | A push to `main` produces a release-mode APK artifact with a SHA-256 | `build-android-release` job (run linked in §6) |
+| AC-05 | A push to `main` produces a release-mode APK artifact with a SHA-256 | `build-android-release` job, run [39906221627](https://github.com/bookchaowalit-mobile/productivity-habit-tracker-mobile/actions/runs/39906221627) |
 
 **Red first (local, Flutter 3.44.9 in a scratch SDK):** with only the signatures in place
 (`lib/observability/sentry_setup.dart` returning defaults), `flutter test test/sentry_setup_test.dart` ended
@@ -58,7 +58,7 @@ After the implementation: `flutter analyze` no issues, `flutter test` **28 passe
 
 | Area | Change |
 |---|---|
-| dependencies | `sentry_flutter` ^10.1.0 (adds `sentry` 10.1.0); lockfile updated |
+| dependencies | `sentry_flutter` ^9.30.1 (adds `sentry` 9.30.1). 10.1.0 was tried first and failed the release manifest merge: it needs Android minSdk 26, the app uses 24 (run 39713040984). `attachViewHierarchy` is experimental in 9.x, so it is left at its default (false) and only asserted in the test |
 | code | `lib/observability/sentry_setup.dart` (pure options + scrubber + `runWithSentry`); `lib/main.dart` runs the app through it |
 | CI secret | `SENTRY_DSN` (GitHub Actions secret, set by the owner) is passed only to the release build |
 | data | Habit names never leave the device. Sentry receives stack traces, device/OS and release only |
@@ -69,7 +69,14 @@ No screen, copy or layout changed. `main()` now wraps `runApp` and the widget te
 text-scale case) still pass. Flutter web is not a target of this repo, so no browser screenshots apply.
 Device check of the CI APK is not done here (no emulator); owner action below.
 
-## 6. Out of scope, deploy state and owner actions
+## 6. CI evidence
+
+Run [39906221627](https://github.com/bookchaowalit-mobile/productivity-habit-tracker-mobile/actions/runs/39906221627)
+on `580f67d`: validate, security (gitleaks, Semgrep, OSV, Trivy) and the release APK all passed. Artifact
+`habit-tracker-apk-ci-NOT-FOR-STORE`: `habit-tracker-580f67d-ci-release-NOT-FOR-STORE.apk`, SHA-256
+`e5b8bc2f22ffc7b2e43a72e56ca4d6d0fdf870690638caf17e1cfa6c7a255be7` (56 MB).
+
+## 7. Out of scope, deploy state and owner actions
 
 - **Deploy state:** not released to any store; no live URL. The CI APK is signed with the Android debug key and is
   not a store build.
