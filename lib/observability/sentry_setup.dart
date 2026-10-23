@@ -19,8 +19,8 @@ void configureSentryOptions(SentryFlutterOptions options, String dsn) {
     ..tracesSampler = null
     ..maxBreadcrumbs = 0
     ..enableAutoSessionTracking = false
+    // View hierarchy capture is off by default (experimental in 9.x).
     ..attachScreenshot = false
-    ..attachViewHierarchy = false
     ..beforeSend = scrubEvent;
 }
 

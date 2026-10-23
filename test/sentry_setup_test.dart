@@ -25,6 +25,7 @@ void main() {
     expect(options.maxBreadcrumbs, 0);
     expect(options.enableAutoSessionTracking, isFalse);
     expect(options.attachScreenshot, isFalse);
+    // ignore: experimental_member_use
     expect(options.attachViewHierarchy, isFalse);
     expect(options.beforeSend, isNotNull);
   });
