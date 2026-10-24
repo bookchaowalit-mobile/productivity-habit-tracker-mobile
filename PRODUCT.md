@@ -42,7 +42,8 @@ up. It is also a portfolio sample of a small, fully tested Flutter app.
   Android debug key** on every push to `main` and keeps it as a workflow
   artifact named `habit-tracker-apk-ci-NOT-FOR-STORE`. It is for testing on a
   device only. The Play Store would reject it; a store build needs a real
-  upload keystore (owner action: create one and keep it in Infisical).
+  upload keystore. One exists in Infisical since 2026-10-24 (`docs/RELEASE-SIGNING.md`), but Gradle still signs
+  `release` with the debug key, so no build uses it yet.
 - The portfolio card "habit-tracker" on bookchaowalit.com describes the
   separate web app `bookchaowalit-website/productivity-habit-tracker-web`, not
   this mobile app.
