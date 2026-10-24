@@ -1,6 +1,6 @@
 ---
 title: "Habit Tracker (mobile) — KPI and Instrumentation Plan"
-status: draft
+status: approved
 created: 2026-10-22
 updated: 2026-10-22
 description: "How we would know Habit Tracker helps people keep habits, which events that needs, and what is actually live today (Sentry errors only)."
@@ -14,10 +14,10 @@ template: architecture-docs templates/sdlc/kpi-and-instrumentation-plan.md
 | Field | Value |
 |---|---|
 | Product | bookchaowalit-mobile/productivity-habit-tracker-mobile (no live URL, not store-released) |
-| Version / status | 0.1 / **draft** — definitions only; no analytics is live, no baselines |
+| Version / status | 0.1 / **approved** (2026-10-24) — definitions only; no analytics is live, no baselines |
 | Metric owner | Owner (bookchaowalit) |
 | AI maker | Claude Code (b-tier-b session, 2026-10-22) |
-| AI reviewer | not yet reviewed |
+| AI reviewer | independent Claude reviewer subagent (`solo:solo-reviewer`, Sonnet, read-only, no maker context), 2026-10-24: approved (see Approval) |
 | Charter objectives | OBJ-01 below (no separate charter) |
 | Analytics / data source of truth | **None live.** Product analytics (PostHog per ADR-0005) is pending owner decision D4. Sentry (`personal-yu0/productivity-habit-tracker-mobile`) receives crash reports only from builds that get `SENTRY_DSN` |
 | Dashboard | none |
@@ -88,3 +88,12 @@ Privacy and data rules:
 | Date | KPI ID | Change | Reason | Baseline restated? | Approved by |
 |---|---|---|---|---|---|
 | 2026-10-22 | all | First draft | Big Loop L3 | no | pending owner |
+
+## Approval (2026-10-24)
+
+| Field | Value |
+|---|---|
+| Checker | independent Claude reviewer subagent (`solo:solo-reviewer`, Sonnet, read-only, no maker context) |
+| Approver | AI approval under the owner's process (approvals by the owner or AI with evidence; maker and checker are different agents). Recorded by Claude session oa-remainder on the owner's instruction "ทำที่เหลือให้หน่อย" (2026-10-24) |
+| Verdict | **approved** |
+| Evidence | lib/observability/sentry_setup.dart + test; ci.yml:68 SENTRY_DSN; no analytics events; all events marked planned. |
